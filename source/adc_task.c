@@ -66,7 +66,7 @@ static int tsc_task_init(void)
 	adc_config.clockDivider = kADC16_ClockDivider8;
 	ADC16_Init(ADC1, &adc_config);
 	ADC16_SetChannelMuxMode(ADC1, kADC16_ChannelMuxB);
-	ADC16_SetHardwareAverage(ADC1, kADC16_HardwareAverageCount16);
+	ADC16_SetHardwareAverage(ADC1, kADC16_HardwareAverageCount32);
 	PRINTF("TSC init done \r\n");
 	return 0;
 #else
@@ -144,7 +144,12 @@ void tsc_task(void *pvParameters)
 	adc16_channel_config_t channel;
 	port_pin_config_t pin_config_pd, pin_config_ana;
 	int old_status, status = PEN_UP;
-	int irq_stat = 0;
+	int irq_stat = 0, press;
+	uint16_t tsc_xm;
+	uint16_t tsc_xp;
+	uint16_t tsc_ym;
+	uint16_t tsc_yp;
+
 	if (tsc_task_init() < 0)
 		return;
 
@@ -171,7 +176,7 @@ void tsc_task(void *pvParameters)
 		//Touch detect: power Y-, enable pullup on xp and read xp GPIO
 		ts_force_drive(0, 0, 1, 0);
 		PORT_SetPinConfig(PORTB, 6u, &pin_config_pd);
-		vTaskDelay(10);
+		vTaskDelay(5);
 		old_status = status;
 		status = GPIO_ReadPinInput(GPIOB, 6u) ? PEN_UP:PEN_DOWN;
 		PORT_SetPinConfig(PORTB, 6u, &pin_config_ana);
@@ -182,30 +187,69 @@ void tsc_task(void *pvParameters)
 		if (status == PEN_DOWN) {
 			//probe ym with power across Y plane
 			ts_force_drive(0, 0, 1, 1);
-			vTaskDelay(10);
 			channel.channelNumber = tsc_channels[0];
-			adc_data.tsc_ym = do_adc_conversion(ADC1, &channel);
+			tsc_ym = do_adc_conversion(ADC1, &channel);
 
 			//probe yp with power across Y plane
 			channel.channelNumber = tsc_channels[1];
-			adc_data.tsc_yp = do_adc_conversion(ADC1, &channel);
+			tsc_yp = do_adc_conversion(ADC1, &channel);
 
 			//probe xm with power across X plane
 			ts_force_drive(1, 1, 0, 0);
-			vTaskDelay(10);
 			channel.channelNumber = tsc_channels[2];
-			adc_data.tsc_xm = do_adc_conversion(ADC1, &channel);
+			tsc_xm = do_adc_conversion(ADC1, &channel);
 
 			//probe xp with power across X plane
 			channel.channelNumber = tsc_channels[3];
-			adc_data.tsc_xp = do_adc_conversion(ADC1, &channel);
+			tsc_xp = do_adc_conversion(ADC1, &channel);
+
+#ifdef TOUCH_STRONG_FILTERING
+			/* additional filtering */
+			//probe ym with power across Y plane
+			ts_force_drive(0, 0, 1, 1);
+			channel.channelNumber = tsc_channels[0];
+			tsc_ym += do_adc_conversion(ADC1, &channel);
+			tsc_ym >>= 1;
+
+			//probe yp with power across Y plane
+			channel.channelNumber = tsc_channels[1];
+			tsc_yp += do_adc_conversion(ADC1, &channel);
+			tsc_yp >>= 1;
+
+			//probe xm with power across X plane
+			ts_force_drive(1, 1, 0, 0);
+			channel.channelNumber = tsc_channels[2];
+			tsc_xm += do_adc_conversion(ADC1, &channel);
+			tsc_xm >>= 1;
+
+			//probe xp with power across X plane
+			channel.channelNumber = tsc_channels[3];
+			tsc_xp += do_adc_conversion(ADC1, &channel);
+			tsc_xp >>= 1;
+#endif
+
+			/* make sure that pen is making good contact */
+			press = (abs(tsc_yp - tsc_ym)
+					+ abs(tsc_xp - tsc_xm)) / 2;
+#ifdef TOUCH_STRONG_FILTERING
+			if (press > 9) {
+#else
+			if (press > 15) {
+#endif
+				continue;
+			} else {
+				adc_data.tsc_xm = tsc_xm;
+				adc_data.tsc_xp = tsc_xp;
+				adc_data.tsc_ym = tsc_ym;
+				adc_data.tsc_yp = tsc_yp;
+			}
 
 		} else {
 			adc_data.tsc_xm = 0;
 			adc_data.tsc_xp = 0;
 			adc_data.tsc_ym = 0;
 			adc_data.tsc_yp = 0;
-			vTaskDelay(20);
+			vTaskDelay(10);
 		}
 
 		if (irq_stat == 0) {
@@ -213,7 +257,7 @@ void tsc_task(void *pvParameters)
 			irq_stat = 1;
 		}
 
-		vTaskDelay(10);
+		vTaskDelay(5);
 	}
 
 }
