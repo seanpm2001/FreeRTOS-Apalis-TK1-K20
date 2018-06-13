@@ -8,7 +8,11 @@ volatile uint8_t registers[APALIS_TK1_K20_LAST_REG];
 volatile uint8_t regRxHandled;
 
 /* Put FW version at known address in a binary. Make it 32-bit to have room for the future*/
+#ifndef TESTER_BUILD
 const uint32_t __attribute__((section(".FwVersion"), used)) fw_version = APALIS_TK1_K20_FW_VER;
+#else
+const uint32_t __attribute__((section(".FwVersion"), used)) fw_version = APALIS_TK1_K20_TESTER_FW_VER;
+#endif
 
 static dspi_slave_handle_t spi_handle;
 static uint8_t slaveRxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER];
