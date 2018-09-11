@@ -22,6 +22,8 @@
 #include "semphr.h"
 #include "errno.h"
 
+#define SPI_DMA
+
 typedef struct _callback_message_t
 {
 	status_t async_status;

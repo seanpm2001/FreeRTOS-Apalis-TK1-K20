@@ -31,6 +31,8 @@
 #define _FSL_FLEXCAN_H_
 
 #include "fsl_common.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /*!
  * @addtogroup flexcan_driver
@@ -40,6 +42,11 @@
 /******************************************************************************
  * Definitions
  *****************************************************************************/
+
+#define CAN_CTRLMODE_NORMAL		0x00	/* normal mode */
+#define CAN_CTRLMODE_LOOPBACK		0x01	/* Loopback mode */
+#define CAN_CTRLMODE_LISTENONLY		0x02 	/* Listen-only mode */
+#define CAN_CTRLMODE_3_SAMPLES		0x03	/* Triple sampling mode */
 
 /*! @name Driver version */
 /*@{*/
@@ -400,7 +407,7 @@ typedef struct _flexcan_handle flexcan_handle_t;
  *  If the status equals to other FlexCAN Message Buffer transfer status, the result is meaningless and should be
  *  Ignored.
  */
-typedef void (*flexcan_transfer_callback_t)(
+typedef BaseType_t (*flexcan_transfer_callback_t)(
     CAN_Type *base, flexcan_handle_t *handle, status_t status, uint32_t result, void *userData);
 
 /*! @brief FlexCAN handle structure. */
@@ -487,6 +494,24 @@ void FLEXCAN_GetDefaultConfig(flexcan_config_t *config);
  */
 
 /*!
+ * @brief Enter FlexCAN Freeze Mode.
+ *
+ * This function makes the FlexCAN work under Freeze Mode.
+ *
+ * @param base FlexCAN peripheral base address.
+ */
+void FLEXCAN_EnterFreezeMode(CAN_Type *base);
+
+/*!
+ * @brief Exit FlexCAN Freeze Mode.
+ *
+ * This function makes the FlexCAN leave Freeze Mode.
+ *
+ * @param base FlexCAN peripheral base address.
+ */
+void FLEXCAN_ExitFreezeMode(CAN_Type *base);
+
+/*!
  * @brief Sets the FlexCAN protocol timing characteristic.
  *
  * This function gives user settings to CAN bus timing characteristic.
@@ -503,6 +528,8 @@ void FLEXCAN_GetDefaultConfig(flexcan_config_t *config);
 void FLEXCAN_SetTimingConfig(CAN_Type *base, const flexcan_timing_config_t *config);
 
 void FLEXCAN_SetBitRate(CAN_Type *base, uint32_t sourceClock_Hz, uint32_t baudRate_Bps);
+
+void FLEXCAN_SetMode(CAN_Type *base, uint32_t mode);
 
 /*!
  * @brief Sets the FlexCAN receive message buffer global mask.

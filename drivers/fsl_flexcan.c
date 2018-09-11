@@ -88,24 +88,6 @@ typedef void (*flexcan_isr_t)(CAN_Type *base, flexcan_handle_t *handle);
  */
 uint32_t FLEXCAN_GetInstance(CAN_Type *base);
 
-/*!
- * @brief Enter FlexCAN Freeze Mode.
- *
- * This function makes the FlexCAN work under Freeze Mode.
- *
- * @param base FlexCAN peripheral base address.
- */
-static void FLEXCAN_EnterFreezeMode(CAN_Type *base);
-
-/*!
- * @brief Exit FlexCAN Freeze Mode.
- *
- * This function makes the FlexCAN leave Freeze Mode.
- *
- * @param base FlexCAN peripheral base address.
- */
-static void FLEXCAN_ExitFreezeMode(CAN_Type *base);
-
 #if !defined(NDEBUG)
 /*!
  * @brief Check if Message Buffer is occupied by Rx FIFO.
@@ -117,7 +99,7 @@ static void FLEXCAN_ExitFreezeMode(CAN_Type *base);
  */
 static bool FLEXCAN_IsMbOccupied(CAN_Type *base, uint8_t mbIdx);
 #endif
-
+#if 0
 #if (defined(FSL_FEATURE_FLEXCAN_HAS_ERRATA_5641) && FSL_FEATURE_FLEXCAN_HAS_ERRATA_5641)
 /*!
  * @brief Get the first valid Message buffer ID of give FlexCAN instance.
@@ -129,7 +111,7 @@ static bool FLEXCAN_IsMbOccupied(CAN_Type *base, uint8_t mbIdx);
  */
 static uint32_t FLEXCAN_GetFirstValidMb(CAN_Type *base);
 #endif
-
+#endif
 /*!
  * @brief Check if Message Buffer interrupt is enabled.
  *
@@ -214,7 +196,7 @@ uint32_t FLEXCAN_GetInstance(CAN_Type *base)
     return instance;
 }
 
-static void FLEXCAN_EnterFreezeMode(CAN_Type *base)
+void FLEXCAN_EnterFreezeMode(CAN_Type *base)
 {
     /* Set Freeze, Halt bits. */
     base->MCR |= CAN_MCR_HALT_MASK;
@@ -225,7 +207,7 @@ static void FLEXCAN_EnterFreezeMode(CAN_Type *base)
     }
 }
 
-static void FLEXCAN_ExitFreezeMode(CAN_Type *base)
+void FLEXCAN_ExitFreezeMode(CAN_Type *base)
 {
     /* Clear Freeze, Halt bits. */
     base->MCR &= ~CAN_MCR_HALT_MASK;
@@ -279,7 +261,7 @@ static bool FLEXCAN_IsMbOccupied(CAN_Type *base, uint8_t mbIdx)
     }
 }
 #endif
-
+#if 0
 #if (defined(FSL_FEATURE_FLEXCAN_HAS_ERRATA_5641) && FSL_FEATURE_FLEXCAN_HAS_ERRATA_5641)
 static uint32_t FLEXCAN_GetFirstValidMb(CAN_Type *base)
 {
@@ -297,6 +279,7 @@ static uint32_t FLEXCAN_GetFirstValidMb(CAN_Type *base)
 
     return firstValidMbNum;
 }
+#endif
 #endif
 
 static bool FLEXCAN_IsMbIntEnabled(CAN_Type *base, uint8_t mbIdx)
@@ -487,6 +470,9 @@ void FLEXCAN_Init(CAN_Type *base, const flexcan_config_t *config, uint32_t sourc
     mcrTemp = (config->enableDoze) ? mcrTemp | CAN_MCR_DOZE_MASK : mcrTemp & ~CAN_MCR_DOZE_MASK;
 #endif
 
+    mcrTemp |= CAN_MCR_HALT_MASK;
+    mcrTemp |= CAN_MCR_FRZ_MASK;
+
     /* Save MCR Configuation. */
     base->MCR = mcrTemp;
 
@@ -539,6 +525,10 @@ void FLEXCAN_SetTimingConfig(CAN_Type *base, const flexcan_timing_config_t *conf
 {
     /* Assertion. */
     assert(config);
+    int keep_frozen = 0;
+
+    if (base->MCR & CAN_MCR_FRZACK_MASK)
+        keep_frozen = 1;
 
     /* Enter Freeze Mode. */
     FLEXCAN_EnterFreezeMode(base);
@@ -553,24 +543,65 @@ void FLEXCAN_SetTimingConfig(CAN_Type *base, const flexcan_timing_config_t *conf
          CAN_CTRL1_PSEG1(config->phaseSeg1) | CAN_CTRL1_PSEG2(config->phaseSeg2) | CAN_CTRL1_PROPSEG(config->propSeg));
 
     /* Exit Freeze Mode. */
-    FLEXCAN_ExitFreezeMode(base);
+    if (!keep_frozen)
+        FLEXCAN_ExitFreezeMode(base);
 }
 
 void FLEXCAN_SetBitRate(CAN_Type *base, uint32_t sourceClock_Hz, uint32_t baudRate_Bps)
 {
+    int keep_frozen = 0;
+
+    if (base->MCR & CAN_MCR_FRZACK_MASK)
+        keep_frozen = 1;
+
     /* Enter Freeze Mode. */
     FLEXCAN_EnterFreezeMode(base);
 
     FLEXCAN_SetBaudRate(base, sourceClock_Hz, baudRate_Bps);
 
     /* Exit Freeze Mode. */
-    FLEXCAN_ExitFreezeMode(base);
+    if (!keep_frozen)
+	    FLEXCAN_ExitFreezeMode(base);
+}
+
+void FLEXCAN_SetMode(CAN_Type *base, uint32_t mode)
+{
+	int keep_frozen = 0;
+
+	if (base->MCR & CAN_MCR_FRZACK_MASK)
+		keep_frozen = 1;
+	/* Enter Freeze Mode. */
+	FLEXCAN_EnterFreezeMode(base);
+	switch (mode){
+	case CAN_CTRLMODE_3_SAMPLES:
+		base->CTRL1 &= ~CAN_CTRL1_LPB_MASK;
+		base->CTRL1 &= ~CAN_CTRL1_LOM_MASK;
+		base->CTRL1 |= CAN_CTRL1_SMP_MASK;
+		break;
+	case CAN_CTRLMODE_LISTENONLY:
+		base->CTRL1 &= ~CAN_CTRL1_LPB_MASK;
+		base->CTRL1 &= ~CAN_CTRL1_SMP_MASK;
+		base->CTRL1 |= CAN_CTRL1_LOM_MASK;
+		break;
+	case CAN_CTRLMODE_LOOPBACK:
+		base->CTRL1 &= ~CAN_CTRL1_SMP_MASK;
+		base->CTRL1 &= ~CAN_CTRL1_LOM_MASK;
+		base->CTRL1 |= CAN_CTRL1_LPB_MASK;
+		break;
+	case CAN_CTRLMODE_NORMAL:
+		base->CTRL1 &= ~CAN_CTRL1_LPB_MASK;
+		base->CTRL1 &= ~CAN_CTRL1_LOM_MASK;
+		base->CTRL1 &= ~CAN_CTRL1_SMP_MASK;
+	}
+	/* Exit Freeze Mode. */
+	if (!keep_frozen)
+		FLEXCAN_ExitFreezeMode(base);
 }
 
 void FLEXCAN_SetRxMbGlobalMask(CAN_Type *base, uint32_t mask)
 {
     /* Enter Freeze Mode. */
-    FLEXCAN_EnterFreezeMode(base);
+    //FLEXCAN_EnterFreezeMode(base);
 
     /* Setting Rx Message Buffer Global Mask value. */
     base->RXMGMASK = mask;
@@ -578,19 +609,19 @@ void FLEXCAN_SetRxMbGlobalMask(CAN_Type *base, uint32_t mask)
     base->RX15MASK = mask;
 
     /* Exit Freeze Mode. */
-    FLEXCAN_ExitFreezeMode(base);
+    //FLEXCAN_ExitFreezeMode(base);
 }
 
 void FLEXCAN_SetRxFifoGlobalMask(CAN_Type *base, uint32_t mask)
 {
     /* Enter Freeze Mode. */
-    FLEXCAN_EnterFreezeMode(base);
+    //FLEXCAN_EnterFreezeMode(base);
 
     /* Setting Rx FIFO Global Mask value. */
     base->RXFGMASK = mask;
 
     /* Exit Freeze Mode. */
-    FLEXCAN_ExitFreezeMode(base);
+    //FLEXCAN_ExitFreezeMode(base);
 }
 
 void FLEXCAN_SetRxIndividualMask(CAN_Type *base, uint8_t maskIdx, uint32_t mask)
@@ -678,7 +709,7 @@ void FLEXCAN_SetRxFifoConfig(CAN_Type *base, const flexcan_rx_fifo_config_t *con
     uint8_t setup_mb, i, rffn = 0;
 
     /* Enter Freeze Mode. */
-    FLEXCAN_EnterFreezeMode(base);
+    //FLEXCAN_EnterFreezeMode(base);
 
     if (enable)
     {
@@ -771,7 +802,7 @@ void FLEXCAN_SetRxFifoConfig(CAN_Type *base, const flexcan_rx_fifo_config_t *con
     }
     base->MCR |= CAN_MCR_SRXDIS_MASK;
     /* Exit Freeze Mode. */
-    FLEXCAN_ExitFreezeMode(base);
+    //FLEXCAN_ExitFreezeMode(base);
 }
 
 #if (defined(FSL_FEATURE_FLEXCAN_HAS_RX_FIFO_DMA) && FSL_FEATURE_FLEXCAN_HAS_RX_FIFO_DMA)
@@ -843,8 +874,8 @@ status_t FLEXCAN_WriteTxMb(CAN_Type *base, uint8_t mbIdx, const flexcan_frame_t 
         base->MB[mbIdx].CS = cs_temp;
 
 #if (defined(FSL_FEATURE_FLEXCAN_HAS_ERRATA_5641) && FSL_FEATURE_FLEXCAN_HAS_ERRATA_5641)
-        base->MB[FLEXCAN_GetFirstValidMb(base)].CS = CAN_CS_CODE(kFLEXCAN_TxMbInactive);
-        base->MB[FLEXCAN_GetFirstValidMb(base)].CS = CAN_CS_CODE(kFLEXCAN_TxMbInactive);
+        base->MB[8].CS = CAN_CS_CODE(kFLEXCAN_TxMbInactive);
+        base->MB[8].CS = CAN_CS_CODE(kFLEXCAN_TxMbInactive);
 #endif
 
         return kStatus_Success;
@@ -1162,7 +1193,7 @@ void FLEXCAN_TransferAbortSend(CAN_Type *base, flexcan_handle_t *handle, uint8_t
     assert(!FLEXCAN_IsMbOccupied(base, mbIdx));
 
     /* Disable Message Buffer Interrupt. */
-    FLEXCAN_DisableMbInterrupts(base, 1 << mbIdx);
+    //FLEXCAN_DisableMbInterrupts(base, 1 << mbIdx);
 
     /* Un-register handle. */
     handle->mbFrameBuf[mbIdx] = 0x0;
@@ -1214,6 +1245,7 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
 
     status_t status = kStatus_FLEXCAN_UnHandled;
     uint32_t result;
+    BaseType_t reschedule = pdFALSE;
 
     /* Store Current FlexCAN Module Error and Status. */
     result = base->ESR1;
@@ -1234,7 +1266,7 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
         else
         {
             /* For this implementation, we solve the Message with lowest MB index first. */
-            for (result = 0; result < FSL_FEATURE_FLEXCAN_HAS_MESSAGE_BUFFER_MAX_NUMBERn(base); result++)
+            for (result = 0; result < 10/* FSL_FEATURE_FLEXCAN_HAS_MESSAGE_BUFFER_MAX_NUMBERn(base) */; result++)
             {
                 /* Get the lowest unhandled Message Buffer */
                 if ((FLEXCAN_GetMbStatusFlags(base, 1 << result)) && (FLEXCAN_IsMbIntEnabled(base, result)))
@@ -1244,7 +1276,7 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
             }
 
             /* Does not find Message to deal with. */
-            if (result == FSL_FEATURE_FLEXCAN_HAS_MESSAGE_BUFFER_MAX_NUMBERn(base))
+            if (result == 10)
             {
                 break;
             }
@@ -1323,7 +1355,8 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
         /* Calling Callback Function if has one. */
         if (handle->callback != NULL)
         {
-            handle->callback(base, handle, status, result, handle->userData);
+            if (handle->callback(base, handle, status, result, handle->userData) == pdTRUE)
+        	    reschedule = pdTRUE;
         }
 
         /* Reset return status */
@@ -1341,6 +1374,7 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
             (0 != (result & (kFLEXCAN_TxWarningIntFlag | kFLEXCAN_RxWarningIntFlag | kFLEXCAN_BusOffIntFlag |
                             kFLEXCAN_ErrorIntFlag | kFLEXCAN_WakeUpIntFlag))));
 #endif
+    portYIELD_FROM_ISR(reschedule);
 }
 
 #if defined(CAN0)

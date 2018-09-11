@@ -270,7 +270,7 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_TSCREG:
-			return -ENOENT;
+			return 0;
 		default:
 			return -ENOENT;
 		}
@@ -320,7 +320,7 @@ int adc_registers(dspi_transfer_t *spi_transfer)
 	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_ADCREG:
-			return -ENOENT;
+			return 0;
 		default:
 			return -ENOENT;
 		}

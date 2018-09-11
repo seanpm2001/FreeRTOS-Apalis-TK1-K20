@@ -1445,7 +1445,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
     assert(handle);
 
     volatile uint32_t dataReceived;
-    uint32_t dataSend = 0;
+//    uint32_t dataSend = 0;
 
     /* Because SPI protocol is synchronous, the number of bytes that that slave received from the
     * master is the actual number of bytes that the slave transmitted to the master. So we only
@@ -1492,25 +1492,26 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                                     		case APALIS_TK1_K20_IRQREG:
                                     			registers[APALIS_TK1_K20_IRQREG] = 0;
                                     			break;
-                                    		case APALIS_TK1_K20_CANREG:
-                                    			registers[APALIS_TK1_K20_CANREG] &= ~0x10;
-                                    			break;
-                                    		case APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_OFFSET:
-                                    			registers[APALIS_TK1_K20_CANREG
-								  + APALIS_TK1_K20_CAN_OFFSET] &= ~0x10;
-                                    			break;
+                                    		case APALIS_TK1_K20_CANERR:
+                                    			registers[APALIS_TK1_K20_CANERR] = 0x00;
+                                    		case APALIS_TK1_K20_CANERR + APALIS_TK1_K20_CAN_OFFSET:
+                                    			registers[APALIS_TK1_K20_CANERR
+								  + APALIS_TK1_K20_CAN_OFFSET] = 0x00;
                                     		}
                         		}
                         		else
                         		{
-                        			base->PUSHR_SLAVE = 0x55;
+                        			if ( *(handle->rxData - 1) ==  APALIS_TK1_K20_READ_INST)
+                        			{
+                        				base->PUSHR_SLAVE = 0x55;
+                        			}
                         		}
                         	}
                 }
 
                 /* Decrease remaining receive byte count */
                 --handle->remainingReceiveByteCount;
-
+#ifndef SPI_DMA
                 if (handle->remainingSendByteCount > 0)
                 {
                 		if (handle->txData)
@@ -1527,6 +1528,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                     /* Write the data to the DSPI data register */
                     base->PUSHR_SLAVE = dataSend;
                 }
+#endif
 #if 0
             }
             else /* If bits/frame is 2 bytes */
@@ -1617,7 +1619,6 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
     if ((handle->remainingReceiveByteCount == 0) || (handle->state == kDSPI_Error))
     {
         /* Other cases, stop the transfer. */
-	dataReceived = base->POPR;
         DSPI_SlaveTransferComplete(base, handle);
         return;
     }

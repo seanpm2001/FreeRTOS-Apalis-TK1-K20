@@ -890,9 +890,9 @@ status_t DSPI_SlaveTransferEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle
     handle->state = kDSPI_Busy;
 
     uint32_t instance = DSPI_GetInstance(base);
-    uint8_t whichCtar = (transfer->configFlags & DSPI_SLAVE_CTAR_MASK) >> DSPI_SLAVE_CTAR_SHIFT;
-    handle->bitsPerFrame =
-        (((base->CTAR_SLAVE[whichCtar]) & SPI_CTAR_SLAVE_FMSZ_MASK) >> SPI_CTAR_SLAVE_FMSZ_SHIFT) + 1;
+    //uint8_t whichCtar = (transfer->configFlags & DSPI_SLAVE_CTAR_MASK) >> DSPI_SLAVE_CTAR_SHIFT;
+    handle->bitsPerFrame = 8;
+        //(((base->CTAR_SLAVE[whichCtar]) & SPI_CTAR_SLAVE_FMSZ_MASK) >> SPI_CTAR_SLAVE_FMSZ_SHIFT) + 1;
 
     /* If using a shared RX/TX DMA request, then this limits the amount of data we can transfer
     * due to the linked channel. The max bytes is 511 if 8-bit/frame or 1022 if 16-bit/frame
@@ -1213,23 +1213,23 @@ static void EDMA_DspiSlaveCallback(edma_handle_t *edmaHandle,
 extern dspi_slave_edma_handle_t g_dspi_edma_s_handle;
 
 static void EDMA_DspiSlaveCallback(edma_handle_t *edmaHandle,
-                                   void *g_dspiEdmaPrivateHandle,
-                                   bool transferDone,
-                                   uint32_t tcds)
+		void *g_dspiEdmaPrivateHandle,
+		bool transferDone,
+		uint32_t tcds)
 {
 
-    assert(edmaHandle);
+	assert(edmaHandle);
 
-    DSPI_DisableDMA(SPI2, kDSPI_RxDmaEnable | kDSPI_TxDmaEnable);
+	DSPI_DisableDMA(SPI2, kDSPI_RxDmaEnable | kDSPI_TxDmaEnable);
 
-    g_dspi_edma_s_handle.state = kDSPI_Idle;
+	g_dspi_edma_s_handle.state = kDSPI_Idle;
 
-    if (g_dspi_edma_s_handle.callback)
-    {
+	if (g_dspi_edma_s_handle.callback)
+	{
 
-	    g_dspi_edma_s_handle.callback(SPI2, &g_dspi_edma_s_handle,
-                                                kStatus_Success, g_dspi_edma_s_handle.userData);
-    }
+		g_dspi_edma_s_handle.callback(SPI2, &g_dspi_edma_s_handle,
+				kStatus_Success, g_dspi_edma_s_handle.userData);
+	}
 }
 #endif
 void DSPI_SlaveTransferAbortEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle)
