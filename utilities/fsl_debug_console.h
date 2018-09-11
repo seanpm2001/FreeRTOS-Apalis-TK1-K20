@@ -60,6 +60,8 @@
 //#define SDK_DEBUGCONSOLE 1U
 #endif
 
+//#define USE_SWO
+
 #ifdef TESTER_BUILD
 #undef SDK_DEBUGCONSOLE
 #endif
@@ -93,10 +95,17 @@
 #define PUTCHAR DbgConsole_Putchar
 #define GETCHAR DbgConsole_Getchar
 #else /* Select printf, scanf, putchar, getchar of toolchain. */
+#ifdef USE_SWO
+#define PRINTF SWO_Printf
+#define SCANF(x...)
+#define PUTCHAR SWO_Putchar
+#define GETCHAR
+#else
 #define PRINTF(x...)
 #define SCANF(x...)
 #define PUTCHAR
 #define GETCHAR
+#endif
 #endif /* SDK_DEBUGCONSOLE */
 
 /*******************************************************************************
@@ -142,6 +151,12 @@ status_t DbgConsole_Init(uint32_t baseAddr, uint32_t baudRate, uint8_t device, u
  * @return Indicates whether de-initialization was successful or not.
  */
 status_t DbgConsole_Deinit(void);
+
+#ifdef USE_SWO
+int SWO_Printf(const char *fmt_s, ...);
+
+int SWO_Putchar(int c);
+#endif
 
 #if SDK_DEBUGCONSOLE
 /*!

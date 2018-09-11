@@ -18,7 +18,9 @@ struct gpio_id{
 };
 
 struct gpio_id gpio_list [] = {
+#ifndef USE_SWO
 		{PORTA, GPIOA, 3},
+#endif
 		{PORTA, GPIOA, 5},
 #ifdef TESTER_BUILD
 		{PORTA, GPIOA, 12},
