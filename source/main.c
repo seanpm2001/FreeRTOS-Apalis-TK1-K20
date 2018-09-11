@@ -97,7 +97,7 @@ int main(void) {
 		PRINTF("create CAN1 task error\r\n");
 	}
 
-	if(xTaskCreate(can_tx_notify_task, "CAN_tx_notify_task", 64L / sizeof(portSTACK_TYPE), NULL, 3, &can_tx_notify_task_handle) != pdPASS)
+	if(xTaskCreate(can_tx_notify_task, "CAN_tx_notify_task", 1000L / sizeof(portSTACK_TYPE), NULL, 3, &can_tx_notify_task_handle) != pdPASS)
 	{
 		PRINTF("create CAN TX notify task error\r\n");
 	}
@@ -114,10 +114,20 @@ int main(void) {
 	}
 #endif
 
-	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 6u);
-	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 6u);
+	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 7u);
+	NVIC_SetPriority(CAN0_Bus_Off_IRQn, 8u);
+	NVIC_SetPriority(CAN0_Error_IRQn, 8u);
+	NVIC_SetPriority(CAN0_Tx_Warning_IRQn, 8u);
+	NVIC_SetPriority(CAN0_Rx_Warning_IRQn, 8u);
+	NVIC_SetPriority(CAN0_Wake_Up_IRQn, 8u);
+	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 7u);
+	NVIC_SetPriority(CAN1_Bus_Off_IRQn, 8u);
+	NVIC_SetPriority(CAN1_Error_IRQn, 8u);
+	NVIC_SetPriority(CAN1_Tx_Warning_IRQn, 8u);
+	NVIC_SetPriority(CAN1_Rx_Warning_IRQn, 8u);
+	NVIC_SetPriority(CAN1_Wake_Up_IRQn, 8u);
 	NVIC_SetPriority(SPI2_IRQn, 5u);
-	NVIC_SetPriority(DMA0_IRQn, 5u);
+	NVIC_SetPriority(DMA0_IRQn, 6u);
 	vTaskStartScheduler();
 
 	for(;;) { /* Infinite loop to avoid leaving the main function */
