@@ -56,6 +56,7 @@ void BOARD_InitPins(void)
 			kGPIO_DigitalInput,
 	};
 	port_pin_config_t od_config;
+	port_pin_config_t can_tx_config;
 	port_pin_config_t in_config;
 
 	CLOCK_EnableClock(kCLOCK_PortA);
@@ -68,12 +69,21 @@ void BOARD_InitPins(void)
 	PORT_SetPinMux(PORTA, 18UL, kPORT_PinDisabledOrAnalog);
 	PORT_SetPinMux(PORTA, 19UL, kPORT_PinDisabledOrAnalog);
 #ifndef TESTER_BUILD
+
+	can_tx_config.mux = kPORT_MuxAlt2;
+	can_tx_config.openDrainEnable = kPORT_OpenDrainDisable;
+	can_tx_config.pullSelect = kPORT_PullUp;
+	can_tx_config.slewRate = kPORT_FastSlewRate;
+	can_tx_config.passiveFilterEnable = kPORT_PassiveFilterDisable;
+	can_tx_config.driveStrength = kPORT_LowDriveStrength;
+	can_tx_config.lockRegister = kPORT_UnlockRegister;
+
 	/* CAN0 pinmux config */
-	PORT_SetPinMux(PORTA, 12u, kPORT_MuxAlt2); /* CAN0 TX */
+	PORT_SetPinConfig(PORTA, 12u, &can_tx_config); /* CAN0 TX */
 	PORT_SetPinMux(PORTA, 13u, kPORT_MuxAlt2); /* CAN0 RX */
 
 	/* CAN1 pinmux config */
-	PORT_SetPinMux(PORTC, 17u, kPORT_MuxAlt2); /* CAN1 TX */
+	PORT_SetPinConfig(PORTC, 17u, &can_tx_config); /* CAN1 TX */
 	PORT_SetPinMux(PORTC, 16u, kPORT_MuxAlt2); /* CAN1 RX */
 
 #ifdef SDK_DEBUGCONSOLE
