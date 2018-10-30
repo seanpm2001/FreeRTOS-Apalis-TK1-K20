@@ -7,6 +7,8 @@
 #include "com_task.h"
 #include "errno.h"
 
+extern const struct gpio_id *gpio_list;
+
 
 static inline int port_type_to_int(PORT_Type *port)
 {
