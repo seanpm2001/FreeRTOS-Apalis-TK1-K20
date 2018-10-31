@@ -281,7 +281,6 @@ void can0_task(void *pvParameters) {
 	{
 		can_fifo_rx(0, &rxXfer);
 	}
-	vSemaphoreDelete(can_msg.sem);
 }
 
 void can1_task(void *pvParameters) {
@@ -303,7 +302,6 @@ void can1_task(void *pvParameters) {
 	{
 		can_fifo_rx(1, &rxXfer);
 	}
-	vSemaphoreDelete(can_msg.sem);
 
 }
 
