@@ -894,6 +894,7 @@ status_t DSPI_SlaveTransferEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle
     handle->bitsPerFrame = 8;
         //(((base->CTAR_SLAVE[whichCtar]) & SPI_CTAR_SLAVE_FMSZ_MASK) >> SPI_CTAR_SLAVE_FMSZ_SHIFT) + 1;
 
+#if 0
     /* If using a shared RX/TX DMA request, then this limits the amount of data we can transfer
     * due to the linked channel. The max bytes is 511 if 8-bit/frame or 1022 if 16-bit/frame
     */
@@ -907,6 +908,7 @@ status_t DSPI_SlaveTransferEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle
         limited_size = 511u;
     }
 
+
     if (handle->bitsPerFrame > 8)
     {
         if (transfer->dataSize > (limited_size << 1u))
@@ -917,6 +919,7 @@ status_t DSPI_SlaveTransferEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle
     }
     else
     {
+
         if (transfer->dataSize > limited_size)
         {
             handle->state = kDSPI_Idle;
@@ -924,13 +927,14 @@ status_t DSPI_SlaveTransferEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle
         }
     }
 
+
     /*The data size should be even if the bitsPerFrame is greater than 8 (that is 2 bytes per frame in dspi) */
     if ((handle->bitsPerFrame > 8) && (transfer->dataSize & 0x1))
     {
         handle->state = kDSPI_Idle;
         return kStatus_InvalidArgument;
     }
-
+#endif
     EDMA_SetCallback(handle->edmaRxRegToRxDataHandle, EDMA_DspiSlaveCallback, &s_dspiSlaveEdmaPrivateHandle[instance]);
 
     /* Store transfer information */
