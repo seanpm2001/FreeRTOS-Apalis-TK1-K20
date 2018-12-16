@@ -1445,7 +1445,9 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
     assert(handle);
 
     volatile uint32_t dataReceived;
-//    uint32_t dataSend = 0;
+#ifndef SPI_DMA
+    uint32_t dataSend = 0;
+#endif
 
     /* Because SPI protocol is synchronous, the number of bytes that that slave received from the
     * master is the actual number of bytes that the slave transmitted to the master. So we only
