@@ -45,7 +45,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Release")
 endif()
 
-SET(CMAKE_C_FLAGS "-mthumb -fno-builtin -mcpu=cortex-m4 -mfloat-abi=soft -Wall -DCPU_MK20DN512VLK10 -DNDEBUG -std=gnu99 -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs -fno-unroll-loops -ffast-math -ftree-vectorize" CACHE INTERNAL "c compiler flags")
+SET(CMAKE_C_FLAGS "-mthumb -fno-builtin -mcpu=cortex-m4 -mfloat-abi=soft -Wall -DCPU_MK20DN512VLK10 -DNDEBUG -std=gnu99 -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs -ffast-math -ftree-vectorize" CACHE INTERNAL "c compiler flags")
 SET(CMAKE_ASM_FLAGS "-mthumb -mcpu=cortex-m4 -mfloat-abi=soft -Wa,--no-warn -Wall -DCPU_MK20DN512VLK10 -DNDEBUG -x assembler-with-cpp" CACHE INTERNAL "asm compiler flags")
 
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--gc-sections -mthumb --specs=nano.specs --specs=nosys.specs -Wl,-Map,\"${TARGET}.map\"" CACHE INTERNAL "executable linker flags")
