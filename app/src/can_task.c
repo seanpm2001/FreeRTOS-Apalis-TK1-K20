@@ -253,6 +253,8 @@ static inline void can_fifo_rx(uint8_t id, flexcan_fifo_transfer_t * rxXfer)
 	FLEXCAN_TransferReceiveFifoNonBlocking(can_regs[id].base, &can_regs[id].handle, rxXfer);
 	xSemaphoreTake(can_msg->sem, portMAX_DELAY);
 	if (can_msg->async_status == pdTRUE) {
+		FLEXCAN_ReadRxFifo(can_regs[id].base, can_regs[id].handle.rxFifoFrameBuf);
+		FLEXCAN_TransferAbortReceiveFifo(can_regs[id].base, &can_regs[id].handle);
 		frame_to_buffer(rxXfer->frame, id);
 		can_regs[id].frames_in_buf++;
 		generate_can_irq(id);

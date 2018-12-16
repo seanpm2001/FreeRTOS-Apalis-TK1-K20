@@ -1295,12 +1295,12 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
                         break;
 
                     case kFLEXCAN_RxFifoFrameAvlFlag:
-                        status = FLEXCAN_ReadRxFifo(base, handle->rxFifoFrameBuf);
-                        if (kStatus_Success == status)
-                        {
+                        //status = FLEXCAN_ReadRxFifo(base, handle->rxFifoFrameBuf);
+                        //if (kStatus_Success == status)
+                        //{
                             status = kStatus_FLEXCAN_RxFifoIdle;
-                        }
-                        FLEXCAN_TransferAbortReceiveFifo(base, handle);
+                        //}
+                        //FLEXCAN_TransferAbortReceiveFifo(base, handle);
                         break;
 
                     default:
@@ -1354,10 +1354,7 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
 
         /* Calling Callback Function if has one. */
         if (handle->callback != NULL)
-        {
-            if (handle->callback(base, handle, status, result, handle->userData) == pdTRUE)
-        	    reschedule = pdTRUE;
-        }
+            reschedule = handle->callback(base, handle, status, result, handle->userData);
 
         /* Reset return status */
         status = kStatus_FLEXCAN_UnHandled;
