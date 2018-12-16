@@ -62,7 +62,7 @@ static int tsc_task_init(void)
 #ifdef BOARD_USES_ADC
 	ADC16_GetDefaultConfig(&adc_config);
 	adc_config.resolution = kADC16_ResolutionSE12Bit;
-	adc_config.longSampleMode = kADC16_LongSampleCycle10;
+	adc_config.longSampleMode = kADC16_LongSampleCycle6;
 	adc_config.clockDivider = kADC16_ClockDivider8;
 	ADC16_Init(ADC1, &adc_config);
 	ADC16_SetChannelMuxMode(ADC1, kADC16_ChannelMuxB);
@@ -234,7 +234,7 @@ void tsc_task(void *pvParameters)
 #ifdef TOUCH_STRONG_FILTERING
 			if (press > 9) {
 #else
-			if (press > 15) {
+			if (press > 13) {
 #endif
 				continue;
 			} else {
