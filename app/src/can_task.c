@@ -46,12 +46,18 @@ static uint8_t data_buffer[2][CAN_RX_BUF_SIZE][CAN_TRANSFER_BUF_LEN];
 
 static struct can_registers can_regs[2];
 
-static inline void generate_can_irq(uint8_t id)
+static inline void set_can_irq(uint8_t id, uint8_t state)
 {
 	if (id == 0) {
-		GPIO_TogglePinsOutput(GPIOB, 1u << 8u);
+		if (state)
+			GPIO_SetPinsOutput(GPIOB, 1u << 8u);
+		else
+			GPIO_ClearPinsOutput(GPIOB, 1u << 8u);
 	} else {
-		GPIO_TogglePinsOutput(GPIOE, 1u << 26u);
+		if (state)
+			GPIO_SetPinsOutput(GPIOE, 1u << 26u);
+		else
+			GPIO_ClearPinsOutput(GPIOE, 1u << 26u);
 	}
 }
 
@@ -62,20 +68,20 @@ void can_tx_notify_task(void *pvParameters)
 	while(1){
 		xTaskNotifyWait( 0x00, 0xFFFFFFFF, &ulInterruptStatus, portMAX_DELAY);
 		if (ulInterruptStatus & 0x01) {
-			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0)] &= ~CANINTF_TX;
-			generate_can_irq(0);
+			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0)] |= CANINTF_TX;
+			set_can_irq(0, 1);
 		}
 		if (ulInterruptStatus & 0x02) {
-			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1)] &= ~CANINTF_TX;
-			generate_can_irq(1);
+			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1)] |= CANINTF_TX;
+			set_can_irq(1, 1);
 		}
 		if (ulInterruptStatus & 0x04) {
 			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0)] |= CANINTF_ERR;
-			generate_can_irq(0);
+			set_can_irq(0, 1);
 		}
 		if (ulInterruptStatus & 0x08) {
 			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1)] |= CANINTF_ERR;
-			generate_can_irq(1);
+			set_can_irq(1, 1);
 		}
 	}
 }
@@ -201,6 +207,12 @@ static void can_calculate_available_data(uint8_t id) {
 	else
 		registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] |= CANINTF_RX;
 	taskEXIT_CRITICAL();
+	if (!(registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)]
+	    & (CANINTF_RX | CANINTF_TX | CANINTF_ERR)))
+		set_can_irq(id, 0);
+	else
+		set_can_irq(id, 1);
+
 }
 
 void can_spi_read_complete(uint8_t id)
@@ -257,7 +269,6 @@ static inline void can_fifo_rx(uint8_t id, flexcan_fifo_transfer_t * rxXfer)
 		FLEXCAN_TransferAbortReceiveFifo(can_regs[id].base, &can_regs[id].handle);
 		frame_to_buffer(rxXfer->frame, id);
 		can_regs[id].frames_in_buf++;
-		generate_can_irq(id);
 		if (can_regs[id].frames_in_buf >= CAN_RX_BUF_SIZE)
 			vTaskSuspend(NULL);
 	}
@@ -278,6 +289,8 @@ void can0_task(void *pvParameters) {
 	PRINTF("CAN0 init done \r\n");
 
 	rxXfer.frame = &rxFrame;
+	can_regs[0].rx_buf_top = 0;
+	can_regs[0].rx_buf_bottom = 0;
 
 	while(1)
 	{
@@ -298,7 +311,10 @@ void can1_task(void *pvParameters) {
 
 	CAN_Init(1);
 	PRINTF("CAN1 init done \r\n");
+
 	rxXfer.frame = &rxFrame;
+	can_regs[1].rx_buf_top = 0;
+	can_regs[1].rx_buf_bottom = 0;
 
 	while(1)
 	{
@@ -324,7 +340,6 @@ static void can_enable(int id, uint8_t enable)
 		FLEXCAN_ExitFreezeMode(can_regs[id].base);
 		can_msg->async_status = pdFALSE;
 		xSemaphoreGive(can_msg->sem);
-		generate_can_irq(id);
 	} else {
 		FLEXCAN_TransferAbortReceiveFifo(can_regs[id].base, &can_regs[id].handle);
 		FLEXCAN_EnterFreezeMode(can_regs[id].base);
@@ -344,8 +359,15 @@ static uint8_t set_canreg (int id, uint8_t value)
 
 static uint8_t clr_canreg (int id, uint8_t mask)
 {
-	mask &= (CANINTF_RX | CANINTF_TX | CANINTF_ERR);
+	mask &= (CANINTF_TX | CANINTF_ERR);
+	if (mask & CANINTF_ERR)
+		registers[APALIS_TK1_K20_CANERR + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] = 0x00;
 	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~mask;
+	if (!(registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)]
+	    & (CANINTF_RX | CANINTF_TX | CANINTF_ERR)))
+		set_can_irq(id, 0);
+	else
+		set_can_irq(id, 1);
 	return 0;
 }
 
@@ -399,12 +421,11 @@ uint8_t can_sendframe(uint8_t id, uint8_t *data, uint8_t len)
 	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
 	if( tx_frame.length <= 8 ) {
 		FLEXCAN_TransferSendNonBlocking(can_regs[id].base , &can_regs[id].handle, &txXfer);
-		registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] |= CANINTF_TX;
 		return 0;
 	}
 	else {
-		registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~CANINTF_TX;
-		generate_can_irq(id);
+		registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] |= CANINTF_TX;
+		set_can_irq(id, 1);
 		return -EIO;
 	}
 }

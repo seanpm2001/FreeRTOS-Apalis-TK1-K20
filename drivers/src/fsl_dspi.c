@@ -1494,11 +1494,6 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                                     		case APALIS_TK1_K20_IRQREG:
                                     			registers[APALIS_TK1_K20_IRQREG] = 0;
                                     			break;
-                                    		case APALIS_TK1_K20_CANERR:
-                                    			registers[APALIS_TK1_K20_CANERR] = 0x00;
-                                    		case APALIS_TK1_K20_CANERR + APALIS_TK1_K20_CAN_OFFSET:
-                                    			registers[APALIS_TK1_K20_CANERR
-								  + APALIS_TK1_K20_CAN_OFFSET] = 0x00;
                                     		}
                         		}
                         		else
