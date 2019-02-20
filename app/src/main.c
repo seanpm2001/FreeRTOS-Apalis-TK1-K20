@@ -85,6 +85,11 @@ int main(void) {
 	if(xTaskCreate(spi_task, "SPI_task", 1000L / sizeof(portSTACK_TYPE), NULL, 4, &spi_task_handle) != pdPASS)
 	{
 		PRINTF("create SPI task error\r\n");
+		/*
+		 * Call vTaskSwitchContext() so link time optimisation does not remove the
+		 * symbol.
+		 */
+		vTaskSwitchContext();
 	}
 #ifndef TESTER_BUILD
 	if(xTaskCreate(can0_task, "CAN0_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &can0_task_handle) != pdPASS)
@@ -133,6 +138,7 @@ int main(void) {
 	for(;;) { /* Infinite loop to avoid leaving the main function */
 		__asm("NOP"); /* something to use as a breakpoint stop while looping */
 	}
+
 }
 
 

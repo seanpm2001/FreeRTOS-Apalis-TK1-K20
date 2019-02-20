@@ -14,8 +14,9 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/utilities
     ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS
     ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/freertos/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/freertos/src/portable/GCC/${PROCESSOR_FAMILY}/
+    ${CMAKE_CURRENT_SOURCE_DIR}/amazon-freertos/lib/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/amazon-freertos/lib/include/private
+    ${CMAKE_CURRENT_SOURCE_DIR}/amazon-freertos/lib/FreeRTOS/portable/GCC/${PROCESSOR_FAMILY}/
     ${CMAKE_CURRENT_SOURCE_DIR}/app/include
     ${CMAKE_CURRENT_SOURCE_DIR}/board/include
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/include
@@ -26,7 +27,7 @@ set(SOURCES
    utilities/fsl_debug_console.c
    )
 
-include(freertos/CMakeLists.txt)
+include(freertosCMakeLists.txt)
 include(drivers/CMakeLists.txt)
 include(app/CMakeLists.txt)
 include(board/CMakeLists.txt)
