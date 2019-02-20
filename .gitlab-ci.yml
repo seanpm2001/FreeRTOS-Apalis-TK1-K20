@@ -1,0 +1,35 @@
+image: dsliwatx/gcc-arm-none-eabi
+
+stages:
+ - build
+ 
+before_script:
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
+
+
+test:
+  stage: build
+  script:
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_BUILD_TYPE=RELEASE -DCROSS_COMPILE_PREFIX=arm-none-eabi- ../
+    - make
+  artifacts:
+    paths:
+  except:
+    - tags
+
+release:
+  stage: build
+  script:
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_BUILD_TYPE=RELEASE -DCROSS_COMPILE_PREFIX=arm-none-eabi- ../
+    - make
+  artifacts:
+    paths:
+    - build/apalis-tk1-k20.bin
+  only:
+    - tags
+
