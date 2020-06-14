@@ -7,7 +7,7 @@
 #include "com_task.h"
 #include "errno.h"
 
-extern const struct gpio_id *gpio_list;
+extern const struct gpio_id gpio_list[];
 
 
 static inline int port_type_to_int(PORT_Type *port)
@@ -35,17 +35,21 @@ static int is_gpio_valid(uint8_t pin)
 {
 	uint16_t i;
 	int temp;
+
 	if (pin == 0xFF)
 		return -EINVAL;
 
-	for (i = 0; i < sizeof(gpio_list)/sizeof(struct gpio_id); i++){
+	i = 0;
+	while (gpio_list[i].port != 0){
 		temp = port_type_to_int(gpio_list[i].port) * 32;
 		temp += gpio_list[i].pin;
 		if ( temp == pin ) {
 			return i;
 		}
+		/* list is sorted, so we can abort early */
 		if (temp > pin)
 			return -EINVAL;
+		i++;
 	}
 
 	return -EINVAL;

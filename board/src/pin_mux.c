@@ -94,7 +94,9 @@ const struct gpio_id gpio_list[] = {
 		{PORTE, GPIOE, 4},
 		{PORTE, GPIOE, 5},
 		{PORTE, GPIOE, 24},
-		{PORTE, GPIOE, 25}
+		{PORTE, GPIOE, 25},
+		/* end marker */
+		{0, 0, 0}
 };
 
 /*******************************************************************************
@@ -211,9 +213,11 @@ void BOARD_InitPins(void)
 	in_config.passiveFilterEnable = kPORT_PassiveFilterDisable;
 	in_config.driveStrength = kPORT_LowDriveStrength;
 	in_config.lockRegister = kPORT_UnlockRegister;
-	for (i = 0; i < sizeof(gpio_list)/sizeof(struct gpio_id); i++){
+	i = 0;
+	while (gpio_list[i].port != 0) {
 		PORT_SetPinConfig(gpio_list[i].port, gpio_list[i].pin, &in_config);
 		GPIO_PinInit(gpio_list[i].gpio, gpio_list[i].pin, &gpio_in_config);
+		i++;
 	}
 
 }
